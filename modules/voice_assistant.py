@@ -89,41 +89,57 @@ def run_friend_chat(paused):
 
     user_input_lower = user_input.lower()
 
+    # 🔇 Interrupt ongoing speech
     if "stop" in user_input_lower:
         stop_speaking = True
         engine.stop()
         return True, None
 
-    if paused and user_input_lower.startswith("hey sakha"):
+    # 🔄 Resume if paused
+    if paused and "resume" in user_input_lower:
         speak("I knew you'd come back. What now?")
         return True, "resume"
 
     if paused:
         return True, None
 
+    # 🛑 Pause command
     if "stop talking" in user_input_lower or "shut up" in user_input_lower:
-        speak("Fine! I’m muting myself. Say 'Hey Sakha' if you miss me.")
+        speak("Fine! I’m muting myself. Say 'resume' if you miss me.")
         return True, "pause"
 
+    # 👋 Exit
     if any(p in user_input_lower for p in ["bye", "goodnight", "see you"]):
         speak("Sleep well, drama queen.")
         return False, None
 
-    if "what should i wear" in user_input_lower or "suggest outfit" in user_input_lower:
-        city = "Bangalore"
+    # ✅ Outfit suggestion — without wake word
+    # ✅ 1. Outfit suggestion — comes FIRST
+    if "what should i wear" in user_input_lower or "suggest outfit" in user_input_lower or "fit to wear" in user_input_lower or "outfit" in user_input_lower:
+        from modules.weather_util import get_city_from_ip, get_weather
+        city = get_city_from_ip()
         weather = get_weather(city)
         emotion = shared_state.current_emotion
 
         prompt = (
-            f"You are a smart fashion assistant. The user is feeling {emotion} "
-            f"and the weather in {city} is {weather}. Suggest a casual outfit "
-            f"that suits both their mood and the weather."
+            f"You are a smart fashion assistant. The user is feeling {emotion}. "
+            f"The weather in {city} is {weather}. "
+            f"Suggest a stylish outfit that fits their mood and the current weather. Be fun!"
         )
 
         outfit = chat_with_gpt(prompt, emotion)
         speak(outfit)
         return True, None
 
+    # ✅ 2. Then weather queries
+    if "weather" in user_input_lower:
+        from modules.weather_util import get_city_from_ip, get_weather
+        city = get_city_from_ip()
+        weather = get_weather(city)
+        speak(f"The weather in {city} is {weather}.")
+        return True, None
+
+    # 💬 Default fallback to ChatGPT
     emotion = shared_state.current_emotion
     reply = chat_with_gpt(user_input_lower, emotion)
     speak(reply)
