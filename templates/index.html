@@ -1,0 +1,130 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Mirror</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f0f2f5, #e6ecf0);
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 30px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 1em;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #4a90e2;
+      color: white;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    button:hover {
+      background: #357ab7;
+      transform: scale(1.05);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: wait;
+    }
+
+    #response {
+      font-size: 1.2em;
+      color: #333;
+      max-width: 600px;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      transition: all 0.3s ease-in-out;
+    }
+
+    @media (max-width: 600px) {
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🪞 Smart Mirror Assistant</h1>
+  <div class="button-group">
+    <button onclick="callApi('/suggest')">👗 Suggest Outfit</button>
+    <button onclick="callApi('/weather')">🌦 Show Weather</button>
+    <button onclick="saveOutfit()">💾 Save Outfit</button>
+    <button onclick="callApi('/history')">📜 Show History</button>
+  </div>
+
+  <div id="response">Ready to assist you 🪞</div>
+
+  <script>
+    async function callApi(endpoint) {
+      const responseDiv = document.getElementById("response");
+      responseDiv.innerText = "Loading...";
+      disableButtons(true);
+
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        responseDiv.innerText = data.message;
+      } catch (err) {
+        responseDiv.innerText = "Error fetching data.";
+      }
+
+      disableButtons(false);
+    }
+
+    async function saveOutfit() {
+      const name = prompt("What do you want to call this outfit?");
+      if (!name) return;
+
+      const responseDiv = document.getElementById("response");
+      responseDiv.innerText = "Saving...";
+      disableButtons(true);
+
+      try {
+        const res = await fetch('/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        const data = await res.json();
+        responseDiv.innerText = data.message;
+      } catch (err) {
+        responseDiv.innerText = "Error saving outfit.";
+      }
+
+      disableButtons(false);
+    }
+
+    function disableButtons(state) {
+      document.querySelectorAll('button').forEach(btn => btn.disabled = state);
+    }
+  </script>
+</body>
+</html>

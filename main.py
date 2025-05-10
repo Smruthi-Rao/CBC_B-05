@@ -3,15 +3,17 @@ from modules.voice_assistant import run_friend_chat, speak
 from modules import shared_state
 import threading
 
-# 🧠 One-time emotion detection
+# ✅ Detect emotion once using webcam
 initial_emotion = detect_initial_emotion()
 shared_state.current_emotion = initial_emotion
+
+# ✅ Speak based on emotion
 speak(f"You look {initial_emotion} today! Want to talk or need a suggestion?")
 
-# ✅ Just show webcam with subtitles — no repeated emotion detection
+# ✅ Start webcam with subtitles in a separate thread (non-blocking)
 threading.Thread(target=show_webcam_with_subtitles, daemon=True).start()
 
-# 🎤 Voice assistant loop
+# ✅ Start voice chat loop
 paused = False
 while True:
     should_continue, pause_toggle = run_friend_chat(paused)
