@@ -1,12 +1,8 @@
 # .gitignore
-
 .env
 render.yaml
-*.pyc
 __pycache__/
-.idea/
-outfit_history.json
+*.pyc
 outfits/
+outfit_history.json
 logs/
-data/
-
