@@ -1,0 +1,12 @@
+# .gitignore
+
+.env
+render.yaml
+*.pyc
+__pycache__/
+.idea/
+outfit_history.json
+outfits/
+logs/
+data/
+
