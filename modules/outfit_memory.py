@@ -1,29 +1,99 @@
 import os
 import json
+from datetime import datetime
 import cv2
-import uuid
-from datetime import datetime, timedelta
+import logging
+from .database import get_db, save_outfit, get_outfits
 
-HISTORY_FILE = "outfit_history.json"
-OUTFIT_DIR = "outfits/"
+# Configure logging
+logger = logging.getLogger(__name__)
 
-# Create outfit directory if it doesn't exist
-os.makedirs(OUTFIT_DIR, exist_ok=True)
+# Create outfits directory if it doesn't exist
+OUTFITS_DIR = "outfits"
+if not os.path.exists(OUTFITS_DIR):
+    os.makedirs(OUTFITS_DIR)
 
-def save_history(name, image_path=None):
-    history = []
-    if os.path.exists(HISTORY_FILE):
-        with open(HISTORY_FILE, "r") as f:
-            history = json.load(f)
+def capture_outfit_snapshot():
+    """Capture an image of the current outfit using webcam"""
+    try:
+        # Initialize webcam
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            logger.error("Failed to open webcam")
+            return None
 
-    history.append({
-        "name": name,
-        "image": image_path,
-        "date": datetime.now().strftime("%Y-%m-%d")
-    })
+        # Capture frame
+        ret, frame = cap.read()
+        cap.release()
 
-    with open(HISTORY_FILE, "w") as f:
-        json.dump(history, f, indent=2)
+        if not ret:
+            logger.error("Failed to capture frame")
+            return None
+
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"outfit_{timestamp}.jpg"
+        filepath = os.path.join(OUTFITS_DIR, filename)
+
+        # Save image
+        cv2.imwrite(filepath, frame)
+        logger.info(f"Captured outfit snapshot: {filepath}")
+        return filepath
+
+    except Exception as e:
+        logger.error(f"Error capturing outfit snapshot: {str(e)}")
+        return None
+
+def save_history(outfit_description, image_path=None, weather=None, emotion=None):
+    """Save outfit information to the database"""
+    try:
+        # Get database session
+        db = next(get_db())
+        
+        # Save to database
+        outfit = save_outfit(
+            db=db,
+            name=f"Outfit {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            description=outfit_description,
+            image_path=image_path,
+            weather=weather,
+            emotion=emotion
+        )
+        
+        logger.info(f"Saved outfit to database: {outfit.name}")
+        return outfit
+
+    except Exception as e:
+        logger.error(f"Error saving outfit history: {str(e)}")
+        raise
+
+def get_recent_outfits(limit=10):
+    """Get recent outfits from the database"""
+    try:
+        # Get database session
+        db = next(get_db())
+        
+        # Get outfits from database
+        outfits = get_outfits(db, limit=limit)
+        
+        # Format outfit information
+        formatted_outfits = []
+        for outfit in outfits:
+            formatted_outfit = f"Outfit: {outfit['name']}\n"
+            if outfit['description']:
+                formatted_outfit += f"Description: {outfit['description']}\n"
+            if outfit['weather']:
+                formatted_outfit += f"Weather: {outfit['weather']}\n"
+            if outfit['emotion']:
+                formatted_outfit += f"Emotion: {outfit['emotion']}\n"
+            formatted_outfit += f"Created: {outfit['created_at']}\n"
+            formatted_outfits.append(formatted_outfit)
+        
+        return formatted_outfits
+
+    except Exception as e:
+        logger.error(f"Error getting recent outfits: {str(e)}")
+        raise
 
 def is_recently_used(name):
     if not os.path.exists(HISTORY_FILE):
@@ -52,23 +122,6 @@ def get_recent_outfits():
         f"{entry['date']}: {entry['name']}"
         for entry in reversed(history)
     ]
-
-def capture_outfit_snapshot():
-    cam = cv2.VideoCapture(0)
-    if not cam.isOpened():
-        print("❌ Webcam not accessible")
-        return None
-
-    ret, frame = cam.read()
-    cam.release()
-
-    if not ret:
-        print("⚠️ Could not read frame.")
-        return None
-
-    filename = os.path.join(OUTFIT_DIR, f"{uuid.uuid4().hex}.jpg")
-    cv2.imwrite(filename, frame)
-    return filename
 
 def show_last_outfit():
     if not os.path.exists(HISTORY_FILE):

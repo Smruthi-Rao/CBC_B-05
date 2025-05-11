@@ -5,107 +5,275 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Mirror</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #f0f2f5, #e6ecf0);
+    :root {
+      --primary-color: #4f46e5;
+      --primary-hover: #4338ca;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --error: #ef4444;
+      --success: #22c55e;
+    }
+
+    * {
       margin: 0;
       padding: 0;
-      text-align: center;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--background);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      width: 100%;
+    }
+
+    header {
+      background: var(--card-bg);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
     }
 
     h1 {
-      font-size: 2.5em;
-      margin-bottom: 30px;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .main-content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      padding: 2rem 0;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
     }
 
     .button-group {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      margin-bottom: 30px;
+      display: grid;
+      gap: 1rem;
     }
 
     button {
-      padding: 12px 24px;
-      font-size: 1em;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 500;
       border: none;
-      border-radius: 6px;
+      border-radius: 0.5rem;
       cursor: pointer;
-      background: #4a90e2;
+      background: var(--primary-color);
       color: white;
-      transition: transform 0.2s, background 0.3s;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
     }
 
     button:hover {
-      background: #357ab7;
-      transform: scale(1.05);
+      background: var(--primary-hover);
     }
 
     button:disabled {
-      background: #ccc;
-      cursor: wait;
+      background: var(--text-secondary);
+      cursor: not-allowed;
+    }
+
+    .response-container {
+      margin-top: 2rem;
     }
 
     #response {
-      font-size: 1.2em;
-      color: #333;
-      max-width: 600px;
-      padding: 20px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      transition: all 0.3s ease-in-out;
+      background: var(--card-bg);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      min-height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
     }
 
-    @media (max-width: 600px) {
-      button {
-        width: 100%;
+    .loading {
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 3px solid var(--text-secondary);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 2rem;
+      border-radius: 0.5rem;
+      color: white;
+      font-weight: 500;
+      transform: translateY(100%);
+      opacity: 0;
+      transition: all 0.3s;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: var(--success);
+    }
+
+    .toast.error {
+      background: var(--error);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .main-content {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <h1>🪞 Smart Mirror Assistant</h1>
-  <div class="button-group">
-    <button onclick="callApi('/suggest')">👗 Suggest Outfit</button>
-    <button onclick="callApi('/weather')">🌦 Show Weather</button>
-    <button onclick="saveOutfit()">💾 Save Outfit</button>
-    <button onclick="callApi('/history')">📜 Show History</button>
-  </div>
+  <header>
+    <div class="container header-content">
+      <h1>🪞 Smart Mirror Assistant</h1>
+      <div class="user-info">
+        <span id="weather-info">Loading weather...</span>
+      </div>
+    </div>
+  </header>
 
-  <div id="response">Ready to assist you 🪞</div>
+  <main class="container">
+    <div class="main-content">
+      <div class="card">
+        <h2>Outfit Suggestions</h2>
+        <div class="button-group">
+          <button onclick="callApi('/suggest')" id="suggestBtn">
+            <span class="icon">👗</span>
+            Get Outfit Suggestion
+          </button>
+          <button onclick="saveOutfit()" id="saveBtn">
+            <span class="icon">💾</span>
+            Save Current Outfit
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Outfit History</h2>
+        <div class="button-group">
+          <button onclick="callApi('/history')" id="historyBtn">
+            <span class="icon">📜</span>
+            View History
+          </button>
+        </div>
+        <div class="response-container">
+          <div id="response">Your outfit history will appear here</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
 
   <script>
+    // Utility functions
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function setLoading(buttonId, isLoading) {
+      const button = document.getElementById(buttonId);
+      if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = `<span class="loading"></span> Loading...`;
+      } else {
+        button.disabled = false;
+        button.innerHTML = button.getAttribute('data-original-text') || button.textContent;
+      }
+    }
+
+    // API calls
     async function callApi(endpoint) {
       const responseDiv = document.getElementById("response");
-      responseDiv.innerText = "Loading...";
-      disableButtons(true);
+      const buttonId = endpoint === '/suggest' ? 'suggestBtn' : 'historyBtn';
+      
+      setLoading(buttonId, true);
+      responseDiv.innerHTML = '<span class="loading"></span>';
 
       try {
         const res = await fetch(endpoint);
+        if (!res.ok) throw new Error('API request failed');
+        
         const data = await res.json();
-        responseDiv.innerText = data.message;
+        responseDiv.textContent = data.message;
+        showToast('Operation completed successfully');
       } catch (err) {
-        responseDiv.innerText = "Error fetching data.";
+        responseDiv.textContent = "An error occurred. Please try again.";
+        showToast('Error: ' + err.message, 'error');
+      } finally {
+        setLoading(buttonId, false);
       }
-
-      disableButtons(false);
     }
 
     async function saveOutfit() {
       const name = prompt("What do you want to call this outfit?");
       if (!name) return;
 
+      setLoading('saveBtn', true);
       const responseDiv = document.getElementById("response");
-      responseDiv.innerText = "Saving...";
-      disableButtons(true);
+      responseDiv.innerHTML = '<span class="loading"></span>';
 
       try {
         const res = await fetch('/save', {
@@ -113,18 +281,40 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name })
         });
+        
+        if (!res.ok) throw new Error('Failed to save outfit');
+        
         const data = await res.json();
-        responseDiv.innerText = data.message;
+        responseDiv.textContent = data.message;
+        showToast('Outfit saved successfully');
       } catch (err) {
-        responseDiv.innerText = "Error saving outfit.";
+        responseDiv.textContent = "Failed to save outfit. Please try again.";
+        showToast('Error: ' + err.message, 'error');
+      } finally {
+        setLoading('saveBtn', false);
       }
-
-      disableButtons(false);
     }
 
-    function disableButtons(state) {
-      document.querySelectorAll('button').forEach(btn => btn.disabled = state);
+    // Initialize weather info
+    async function updateWeather() {
+      try {
+        const res = await fetch('/weather');
+        const data = await res.json();
+        document.getElementById('weather-info').textContent = data.message;
+      } catch (err) {
+        document.getElementById('weather-info').textContent = 'Weather unavailable';
+      }
     }
+
+    // Save original button text
+    document.querySelectorAll('button').forEach(btn => {
+      btn.setAttribute('data-original-text', btn.innerHTML);
+    });
+
+    // Initial weather update
+    updateWeather();
+    // Update weather every 30 minutes
+    setInterval(updateWeather, 30 * 60 * 1000);
   </script>
 </body>
 </html>
